@@ -48,6 +48,7 @@ to({X, Y}, Direction) ->
   end.
 
 -define(MOVE(Game, Item, Direction), game:move(Game, Item, to(Item, Direction))).
+-define(JUMP(Game, Item, Direction), game:move(Game, Item, to(Item, Direction ++ Direction))).
 
 
 
@@ -123,3 +124,76 @@ single_eating_test() ->
     "o.o.o.o.",
     ".o.o.o.o"
   ], game:dump(Game3)).
+
+create_from_cells_test() ->
+  Game = game:create(1, 2, [
+    {1,1, black},
+    {2,2, white}
+  ], black),
+  ?assertMatch({black, _}, game:whose_turn(Game)),
+  ?assertMatch(false, game:winner(Game)),
+  ?assertEqual([
+    "*.......",
+    ".o......",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........"
+  ], game:dump(Game)).
+
+create_from_cells_win_test() ->
+  Game = game:create(1, 2, [{1,1,black}], white),
+  ?assertMatch({black, _}, game:winner(Game)).
+
+move_to_win_test() ->
+  Game = game:create(1, 2, [
+    {1,1, black},
+    {2,2, white}
+  ], black),
+  ?assertEqual(false, game:winner(Game)),
+  {ok, Game2} = ?JUMP(Game, {1,1}, [r,d]),
+  ?assertMatch({black, _}, game:winner(Game2)).
+
+move_after_win_test() ->
+  Game = game:create(1, 2, [
+    {1,1, black},
+    {2,2, white}
+  ], black),
+  ?assertEqual(false, game:winner(Game)),
+  {ok, Game2} = ?JUMP(Game, {1,1}, [r,d]),
+  ?assertMatch({error, state_gameover}, game:move(Game2, {3,3}, {4,4})).
+
+
+move_outside_top_test() ->
+  Game = game:create(1, 2, [
+    {1,1, white},
+    {2,2, black}
+  ], white),
+  ?assertMatch({error, rules_outside}, ?MOVE(Game, {1,1}, [u,l])),
+  ?assertMatch({error, rules_outside}, ?MOVE(Game, {1,1}, [u,r])).
+
+move_outside_left_test() ->
+  Game = game:create(1, 2, [
+    {1,3, white},
+    {7,7, black}
+  ], white),
+  ?assertMatch({error, rules_outside}, ?MOVE(Game, {1,3}, [u,l])),
+  ?assertMatch({ok, _}, ?MOVE(Game, {1,3}, [u,r])).
+
+move_outside_bottom_test() ->
+  Game = game:create(1, 2, [
+    {1,1, white},
+    {8,8, black}
+  ], black),
+  ?assertMatch({error, rules_outside}, ?MOVE(Game, {8,8}, [d,l])),
+  ?assertMatch({error, rules_outside}, ?MOVE(Game, {8,8}, [d,r])).
+
+move_outside_right_test() ->
+  Game = game:create(1, 2, [
+    {1,1, white},
+    {8,5, black}
+  ], black),
+  ?assertMatch({error, rules_outside}, ?MOVE(Game, {8,5}, [d,r])),
+  ?assertMatch({ok, _}, ?MOVE(Game, {8,5}, [d,l])).

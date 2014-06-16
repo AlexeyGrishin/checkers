@@ -2,18 +2,23 @@
 -author("Alex").
 
 %% API
--export([create/2,
+-export([
+  create/2, create/4,
   dump/1, describe/1,
   whose_turn/1, player/2, players/1, winner/1,
   move/3
 ]).
 
--record(game, {field, white_player, black_player, turn, winner}).
+-record(game, {field, white_player, black_player, turn, winner = false}).
+-include("field.hrl").
 
 %public
 
 create(White, Black) ->
-  #game{field = create_field(), white_player = White, black_player = Black, turn = white, winner = false}.
+  #game{field = create_field(), white_player = White, black_player = Black, turn = white}.
+
+create(White, Black, Cells, WhosTurn) ->
+  check_win(#game{field = create_field(Cells), white_player = White, black_player = Black, turn = WhosTurn}).
 
 dump(#game{field = Field}) ->
   field2:dump(Field, fun (Item) ->
@@ -35,8 +40,7 @@ winner(#game{winner = false}) -> false;
 winner(#game{winner = W} = Game) -> player(Game, W).
 
 
-%TODO: check moving out of field (in Field, I think)
-move(#game{field = Field, turn = Side, winner = false} = Game, {X0, Y0}, {X1, Y1}) ->
+move(#game{field = Field, turn = Side, winner = false} = Game, {X0, Y0}, {X1, Y1}) when ?IS_INSIDE(X1, Y1, Field) ->
   Opposite = opposite(Side),
   ItemFrom = what_on_cell(Game, X0, Y0),
   ItemTo = what_on_cell(Game, X1, Y1),
@@ -67,6 +71,8 @@ move(#game{field = Field, turn = Side, winner = false} = Game, {X0, Y0}, {X1, Y1
     {_, _, _, D} when D >= 2      -> {error, rules_jump};
     _                             -> {error, state_unknown}
   end;
+move(#game{field = Field, winner = false}, _, {X1, Y1}) when not ?IS_INSIDE(X1, Y1, Field) ->
+  {error, rules_outside};
 move(#game{winner = _W}, _P1, _P2) ->
   {error, state_gameover}.
 
@@ -77,6 +83,7 @@ describe({error, state_unknown})        -> "Unknown error";
 describe({error, rules_jump})           -> "Cannot jump over several cells";
 describe({error, rules_jump_over_self}) -> "Cannot jump over own checkers";
 describe({error, rules_direction})      -> "Cannot move that way";
+describe({error, rules_outside})        -> "Cannot move outside field";
 describe({error, SomethingElse})        -> "Error: " + atom_to_list(SomethingElse).
 
 %private
@@ -147,7 +154,15 @@ what_on_cell(#game{field = F}, X, Y) ->
 
 
 % field initiators
-create_field() -> fill_created_field(field2:create(8, 8)).
+create_field(Cells) ->
+  Field = field2:create(8, 8),
+  field2:put(Field, lists:map(
+    fun ({X, Y, Side}) -> {X, Y, create_checker(Side)} end,
+    Cells)
+  )
+  .
+create_field() ->
+  fill_created_field(field2:create(8, 8)).
 
 fill_created_field(F) ->
   fill_lines(F, [

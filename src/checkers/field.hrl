@@ -1,0 +1,3 @@
+-author("Alex").
+-record(field, {width, height, cells}).
+-define(IS_INSIDE(X, Y, Field), ((X > 0) and (Y > 0) and (X =< Field#field.width) and (Y =< Field#field.height))).

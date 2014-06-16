@@ -5,7 +5,7 @@
 -export([create/2, delete/3, put/4, put/2, move/5, is_empty/3, get/3, dump/2, is/4, cell_type/3, count/2]).
 
 -record(cell, {x, y, item}).
--record(field, {width, height, cells}).
+-include("field.hrl").
 
 %public
 
