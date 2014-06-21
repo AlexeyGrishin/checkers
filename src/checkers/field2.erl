@@ -2,9 +2,8 @@
 -author("Alex").
 
 %% API
--export([create/2, delete/3, put/4, put/2, move/5, is_empty/3, get/3, dump/2, is/4, cell_type/3, count/2]).
+-export([create/2, delete/3, list/1, put/4, put/2, move/5, is_empty/3, get/3, dump/2, is/4, cell_type/3, count/2]).
 
--record(cell, {x, y, item}).
 -include("field.hrl").
 
 %public
@@ -16,6 +15,8 @@ get(#field{} = F, X, Y) ->
   Cells = F#field.cells,
   find_by_coords(Cells, X, Y).
 
+list(#field{cells = Cells}) ->
+  lists:map(fun ({cell, X, Y, Item}) -> {X, Y, Item} end, Cells).     %TODO:ugly
 
 delete(#field{} = F, X, Y) ->
   F#field{cells = delete_by_coords(F#field.cells, X, Y)}.
